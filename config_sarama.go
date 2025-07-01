@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/mrbryside/tessara/sacmclient"
 	"github.com/twmb/murmur3"
+
+	"github.com/mrbryside/tessara/sacmclient"
 )
 
 // saramaConfig wraps the sarama.Config struct for easier configuration.
