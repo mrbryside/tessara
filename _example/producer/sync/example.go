@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	tessara "github.com/mrbryside"
+	"github.com/mrbryside/tessara"
 )
 
 func main() {

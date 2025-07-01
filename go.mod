@@ -1,4 +1,4 @@
-module github.com/mrbryside
+module github.com/mrbryside/tessara
 
 go 1.23.4
 

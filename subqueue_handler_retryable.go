@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/mrbryside/metric"
+
+	"github.com/mrbryside/tessara/metric"
 )
 
 // retryableHandler configures the consumer to start consuming from the newest offset.

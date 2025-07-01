@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/mrbryside/sacmclient"
+	"github.com/mrbryside/tessara/sacmclient"
 	"github.com/twmb/murmur3"
 )
 

@@ -10,7 +10,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	tessara "github.com/mrbryside"
+	"github.com/mrbryside/tessara"
 )
 
 type Handler struct{}
@@ -54,48 +54,10 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cfgProducer := tessara.NewProducerConfig(brokers).
-		WithSASL("kafkaUser", "kafkaPassword").
-		WithRetry(5).
-		WithTimeout(3 * time.Second)
-
-	sp := tessara.NewSyncProducer(cfgProducer)
-	defer sp.Producer.Close()
-
-	keyArr := []string{
-		"key1",
-		"key2",
-		"key3",
-		"key4",
-		"key5",
-	}
-
-	go func() {
-		time.Sleep(15 * time.Second)
-		for i := range 200 {
-			randomKey := keyArr[rand.Intn(len(keyArr))]
-			// if i == 199 {
-			// 	randomKey = "error ja"
-			// }
-			value := fmt.Sprintf("message-%d", i)
-			msg := tessara.ProducerMessage{
-				Topic: topic,
-				Key:   randomKey,
-				Value: []byte(value),
-			}
-			_, _, err := sp.Produce(msg)
-			if err != nil {
-				log.Printf("Failed to produce message %d: %v", i, err)
-			}
-		}
-		log.Println("Produced 200 messages with no key.")
-	}()
-
-	// --- Consumer ---
 	cfg := tessara.NewConsumerConfig(brokers, topic, groupID).
 		WithSASL("kafkaUser", "kafkaPassword").
 		WithOffsetInitialOldest().
-		WithBufferSize(1000).
+		WithBufferSize(256).
 		WithSubqueue(5).
 		WithKeyDistributeMode().
 		WithCommitInterval(3*time.Second).

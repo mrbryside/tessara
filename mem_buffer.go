@@ -5,8 +5,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/mrbryside/metric"
 	"golang.org/x/net/context"
+
+	"github.com/mrbryside/tessara/metric"
 )
 
 // memoryBuffer is a struct that implements the sarama.ConsumerGroupHandler interface

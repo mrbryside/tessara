@@ -6,7 +6,8 @@ import (
 	"log"
 
 	"github.com/IBM/sarama"
-	"github.com/mrbryside/metric"
+
+	"github.com/mrbryside/tessara/metric"
 )
 
 // customerHandler is a struct that implements the sarama.ConsumerGroupHandler interface

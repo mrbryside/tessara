@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/mrbryside/metric"
+
+	"github.com/mrbryside/tessara/metric"
 )
 
 // subqueueMessage represents a message that subqueue received from the receiver channel

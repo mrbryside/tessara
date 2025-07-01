@@ -9,8 +9,9 @@ import (
 	"syscall"
 
 	"github.com/IBM/sarama"
-	"github.com/mrbryside/metric"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/mrbryside/tessara/metric"
 )
 
 var (
