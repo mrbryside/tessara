@@ -15,7 +15,7 @@ type orchestrator struct {
 	subqueueQualifier *subqueueQualifier
 	committer         *committer
 
-	closeOnce sync.Once
+	closeOnce *sync.Once
 }
 
 // newOrchestrator creates a new orchestrator instance.
@@ -59,8 +59,10 @@ func (o orchestrator) startReceive(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			close(o.receiver)
-			fmt.Println("session context done, stop orchreatrator receive message")
+			o.closeOnce.Do(func() {
+				close(o.receiver)
+				fmt.Println("session context done, stop orchreatrator receive message")
+			})
 			return
 		case msg, ok := <-o.receiver:
 			if !ok {
