@@ -3,6 +3,7 @@ package tessara
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -21,6 +22,8 @@ type subqueue struct {
 	id               int
 	receiver         chan subqueueMessage
 	retryableHandler retryableHandler
+
+	closeOnce sync.Once
 }
 
 // newSubqueue creates a new subqueue instance
@@ -60,8 +63,10 @@ func newSubqueues(ctx context.Context, rh retryableHandler, memoryBufferSize uin
 func (s *subqueue) Push(ctx context.Context, sqMsg subqueueMessage) {
 	select {
 	case <-ctx.Done():
-		close(s.receiver)
-		fmt.Println("session context done, stop push message to subqueue")
+		s.closeOnce.Do(func() {
+			close(s.receiver)
+			fmt.Println("session context done, stop push message to subqueue")
+		})
 		return
 	default:
 		s.receiver <- sqMsg

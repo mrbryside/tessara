@@ -2,6 +2,7 @@ package tessara
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/IBM/sarama"
 	"golang.org/x/net/context"
@@ -13,6 +14,8 @@ type orchestrator struct {
 	memoryBuffer      *memoryBuffer
 	subqueueQualifier *subqueueQualifier
 	committer         *committer
+
+	closeOnce sync.Once
 }
 
 // newOrchestrator creates a new orchestrator instance.
@@ -41,8 +44,10 @@ func newOrchestrator(
 func (o orchestrator) Push(ctx context.Context, msg *sarama.ConsumerMessage) {
 	select {
 	case <-ctx.Done():
-		close(o.receiver)
-		fmt.Println("session context done, stop push message")
+		o.closeOnce.Do(func() {
+			close(o.receiver)
+			fmt.Println("session context done, stop push message")
+		})
 		return
 	default:
 		o.receiver <- msg
