@@ -52,13 +52,16 @@ func (mb *memoryBuffer) waterMarkUpdater(ctx context.Context) {
 			fmt.Println("WaterMarkUpdater stopped due to session context done")
 			return
 		case <-ticker.C:
-			if mb.IsWaterMarkMsgMarkSuccess() {
-				// current water mark is mark success we need to update water mark offset of memory buffer
-				// then increase water mark to validate next buffer
-				mb.UpdateWaterMarkOffsetByWaterMarkMsgOffset()
-				mb.IncrementWaterMark()
-				// update metric
-				metric.IncrementCurrentWatermark()
+			// need this condition to avoid race condition when Checking IsWaterMarkMsgMarkSuccess it's access array that push by Push function
+			if mb.WaterMark() < mb.CurrentBuffer() {
+				if mb.IsWaterMarkMsgMarkSuccess() {
+					// current water mark is mark success we need to update water mark offset of memory buffer
+					// then increase water mark to validate next buffer
+					mb.UpdateWaterMarkOffsetByWaterMarkMsgOffset()
+					mb.IncrementWaterMark()
+					// update metric
+					metric.IncrementCurrentWatermark()
+				}
 			}
 		}
 	}
