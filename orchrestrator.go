@@ -15,7 +15,7 @@ type orchestrator struct {
 	subqueueQualifier *subqueueQualifier
 	committer         *committer
 
-	closeOnce *sync.Once
+	closeOnce sync.Once
 }
 
 // newOrchestrator creates a new orchestrator instance.
@@ -25,9 +25,9 @@ func newOrchestrator(
 	sq *subqueueQualifier,
 	cm *committer,
 	memoryBufferSize uint64,
-) orchestrator {
+) *orchestrator {
 	orchestratorChannelBufferSize := memoryBufferSize
-	o := orchestrator{
+	o := &orchestrator{
 		receiver:          make(chan *sarama.ConsumerMessage, orchestratorChannelBufferSize),
 		memoryBuffer:      mb,
 		subqueueQualifier: sq,
@@ -41,7 +41,7 @@ func newOrchestrator(
 }
 
 // Push pushes a message to the orchestrator
-func (o orchestrator) Push(ctx context.Context, msg *sarama.ConsumerMessage) {
+func (o *orchestrator) Push(ctx context.Context, msg *sarama.ConsumerMessage) {
 	select {
 	case <-ctx.Done():
 		o.closeOnce.Do(func() {
@@ -55,7 +55,7 @@ func (o orchestrator) Push(ctx context.Context, msg *sarama.ConsumerMessage) {
 }
 
 // startReceive starts receiving messages from the receiver channel push in message buffer then qualify to subqueue
-func (o orchestrator) startReceive(ctx context.Context) {
+func (o *orchestrator) startReceive(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
