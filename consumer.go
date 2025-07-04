@@ -53,6 +53,7 @@ func (c consumer) StartConsume(ctx context.Context) {
 	if err != nil {
 		log.Panicf("[Consumer.StartConsume]: unable to create sarama consumer group due to %s", err.Error())
 	}
+	defer consumerGroup.Close()
 
 	// start consume
 	c.consume(ctx, consumerGroup)

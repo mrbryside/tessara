@@ -57,9 +57,6 @@ func (ch *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 	// consume message from channel and push message to orchestrator
 	for {
 		select {
-		// case <-session.Context().Done():
-		// 	return nil
-
 		case msg, ok := <-claim.Messages():
 			if !ok {
 				return nil
