@@ -2,7 +2,6 @@ package tessara
 
 import (
 	"context"
-	"sync"
 )
 
 // qualifier is an interface that defines the Qualify method.
@@ -15,8 +14,6 @@ type subqueueQualifier struct {
 	receiver  chan subqueueMessage
 	qualifier qualifier
 	subqueues []*subqueue
-
-	closeOnce sync.Once
 }
 
 // newSubqueueQualifier creates a new SubqueueQualifier instance.
@@ -43,9 +40,6 @@ func (sq *subqueueQualifier) StartQualify(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			sq.closeOnce.Do(func() {
-				close(sq.receiver)
-			})
 			return
 		case sqMsg, ok := <-sq.receiver:
 			if !ok {
@@ -61,9 +55,6 @@ func (sq *subqueueQualifier) StartQualify(ctx context.Context) {
 func (sq *subqueueQualifier) Push(ctx context.Context, sqMsg subqueueMessage) {
 	select {
 	case <-ctx.Done():
-		sq.closeOnce.Do(func() {
-			close(sq.receiver)
-		})
 		return
 	default:
 		sq.receiver <- sqMsg

@@ -61,10 +61,8 @@ func (ch *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 	for {
 		select {
 		case <-session.Context().Done():
-			ch.closeOnce.Do(func() {
-				close(ch.commitGiveUpErrorChan)
-			})
 			return nil
+
 		case msg, ok := <-claim.Messages():
 			if !ok {
 				return nil

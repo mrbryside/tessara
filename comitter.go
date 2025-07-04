@@ -3,7 +3,6 @@ package tessara
 import (
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"golang.org/x/net/context"
@@ -30,8 +29,6 @@ type committer struct {
 	commitGiveUpErrorChan chan error
 	latestCommittedOffset int64
 	lastestCommittedAt    time.Time
-
-	closeOnce sync.Once
 }
 
 // newCommitter creates a new Committer instance
@@ -77,7 +74,6 @@ func (c *committer) startCommitIntervalAndCommitGiveUpInterval(ctx context.Conte
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("Commit interval stopped due to session context done")
 			return
 
 		case <-tickerCommitInterval.C:
@@ -103,10 +99,6 @@ func (c *committer) startCommitIntervalAndCommitGiveUpInterval(ctx context.Conte
 func (c *committer) pushErrorToGiveUpErrorChannel(ctx context.Context) {
 	select {
 	case <-ctx.Done():
-		c.closeOnce.Do(func() {
-			close(c.commitGiveUpErrorChan)
-			fmt.Println("session context done, stop push error to give up error channel")
-		})
 		return
 	default:
 		c.commitGiveUpErrorChan <- errors.New("error commit give up")
