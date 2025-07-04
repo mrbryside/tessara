@@ -41,6 +41,9 @@
       },
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -140,43 +143,15 @@
       "targets": [
         {
           "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "current_buffer",
+          "editorMode": "code",
+          "expr": "current_buffer - current_watermark",
           "fullMetaSearch": false,
-          "hide": true,
+          "hide": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
           "range": true,
           "refId": "A",
           "useBackend": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "current_watermark",
-          "fullMetaSearch": false,
-          "hide": true,
-          "includeNullMetadata": true,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "C",
-          "useBackend": false
-        },
-        {
-          "datasource": {
-            "name": "Expression",
-            "type": "__expr__",
-            "uid": "__expr__"
-          },
-          "expression": "${A} - ${C}",
-          "hide": false,
-          "refId": "B",
-          "type": "math"
         }
       ],
       "title": "Total Uncommitted",
@@ -243,7 +218,7 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 13,
+        "w": 12,
         "x": 6,
         "y": 1
       },
@@ -319,8 +294,8 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 5,
-        "x": 19,
+        "w": 6,
+        "x": 18,
         "y": 1
       },
       "id": 8,
@@ -336,9 +311,7 @@
           "values": false
         },
         "showPercentChange": false,
-        "text": {
-          "valueSize": 55
-        },
+        "text": {},
         "textMode": "auto",
         "wideLayout": true
       },
@@ -561,7 +534,7 @@
           "color": {
             "mode": "thresholds"
           },
-          "displayName": "Queue: ${__field.labels[\"subqueueId\"]}",
+          "displayName": "[${__field.labels[\"instance\"]}] Queue: ${__field.labels[\"subqueueId\"]}",
           "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
@@ -591,9 +564,9 @@
           "showLegend": false
         },
         "maxVizHeight": 42,
-        "minVizHeight": 0,
+        "minVizHeight": 33,
         "minVizWidth": 8,
-        "namePlacement": "auto",
+        "namePlacement": "top",
         "orientation": "horizontal",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
@@ -632,7 +605,7 @@
           "color": {
             "mode": "thresholds"
           },
-          "displayName": "Queue: ${__field.labels[\"subqueueId\"]}",
+          "displayName": "[${__field.labels[\"instance\"]}] Queue: ${__field.labels[\"subqueueId\"]}",
           "mappings": [],
           "noValue": "-",
           "thresholds": {
@@ -662,9 +635,9 @@
           "showLegend": false
         },
         "maxVizHeight": 42,
-        "minVizHeight": 0,
+        "minVizHeight": 33,
         "minVizWidth": 8,
-        "namePlacement": "auto",
+        "namePlacement": "top",
         "orientation": "horizontal",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
@@ -710,7 +683,7 @@
           "color": {
             "mode": "thresholds"
           },
-          "displayName": "Queue: ${__field.labels[\"subqueueId\"]}",
+          "displayName": "[${__field.labels[\"instance\"]}] Queue: ${__field.labels[\"subqueueId\"]}",
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -739,9 +712,9 @@
           "showLegend": false
         },
         "maxVizHeight": 42,
-        "minVizHeight": 0,
+        "minVizHeight": 33,
         "minVizWidth": 8,
-        "namePlacement": "auto",
+        "namePlacement": "top",
         "orientation": "horizontal",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
