@@ -1,7 +1,6 @@
 package tessara
 
 import (
-	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -49,7 +48,6 @@ func (mb *memoryBuffer) waterMarkUpdater(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("WaterMarkUpdater stopped due to session context done")
 			return
 		case <-ticker.C:
 			// need this condition to avoid race condition when Checking IsWaterMarkMsgMarkSuccess it's access array that push by Push function
@@ -74,7 +72,6 @@ bufferCheckLoop:
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("Push stopped due to session context done")
 			return
 		default:
 			if mb.IsBufferAvailable() {
