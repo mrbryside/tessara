@@ -43,6 +43,9 @@ func setDefaultSetting(c sarama.Config) sarama.Config {
 	c.Producer.Retry.Max = 3
 	c.Producer.Timeout = 3 * time.Second
 	c.Producer.Partitioner = sarama.NewCustomHashPartitioner(murmur3.New32)
+
+	// default another
+	c.Net.KeepAlive = 5 * time.Second
 	return c
 }
 
