@@ -2,8 +2,8 @@ package tessara
 
 import (
 	"errors"
-	"fmt"
 	"log"
+	"sync"
 
 	"github.com/IBM/sarama"
 
@@ -18,6 +18,8 @@ type consumerHandler struct {
 
 	// commitGiveUpErrorChan is a channel that receive error from comiiter when exceed commit give up time
 	commitGiveUpErrorChan chan error
+
+	closeOnce sync.Once
 }
 
 // newConsumerGroupHandler creates a new consumer handler
@@ -58,9 +60,13 @@ func (ch *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 	// consume message from channel and push message to orchestrator
 	for {
 		select {
+		case <-session.Context().Done():
+			ch.closeOnce.Do(func() {
+				close(ch.commitGiveUpErrorChan)
+			})
+			return nil
 		case msg, ok := <-claim.Messages():
 			if !ok {
-				fmt.Println("mesasage channel closed, stop read message from broker")
 				return nil
 			}
 			ort.Push(session.Context(), msg)

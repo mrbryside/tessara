@@ -43,6 +43,9 @@ func newOrchestrator(
 func (o *orchestrator) Push(ctx context.Context, msg *sarama.ConsumerMessage) {
 	select {
 	case <-ctx.Done():
+		o.closeOnce.Do(func() {
+			close(o.receiver)
+		})
 		return
 	default:
 		o.receiver <- msg

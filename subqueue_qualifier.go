@@ -61,6 +61,9 @@ func (sq *subqueueQualifier) StartQualify(ctx context.Context) {
 func (sq *subqueueQualifier) Push(ctx context.Context, sqMsg subqueueMessage) {
 	select {
 	case <-ctx.Done():
+		sq.closeOnce.Do(func() {
+			close(sq.receiver)
+		})
 		return
 	default:
 		sq.receiver <- sqMsg
