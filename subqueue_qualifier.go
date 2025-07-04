@@ -2,7 +2,6 @@ package tessara
 
 import (
 	"context"
-	"fmt"
 	"sync"
 )
 
@@ -46,13 +45,10 @@ func (sq *subqueueQualifier) StartQualify(ctx context.Context) {
 		case <-ctx.Done():
 			sq.closeOnce.Do(func() {
 				close(sq.receiver)
-				fmt.Println("session context done, stop subqueue qualifier receive message")
 			})
-
 			return
 		case sqMsg, ok := <-sq.receiver:
 			if !ok {
-				fmt.Println("subqueue qualifier receiver channel closed")
 				return
 			}
 			targetSubqueue := sq.qualifier.Qualify(string(sqMsg.consumerMessage.Key), sq.subqueues)
@@ -65,8 +61,6 @@ func (sq *subqueueQualifier) StartQualify(ctx context.Context) {
 func (sq *subqueueQualifier) Push(ctx context.Context, sqMsg subqueueMessage) {
 	select {
 	case <-ctx.Done():
-		close(sq.receiver)
-		fmt.Println("session context done, stop push message to subqueue qualifier")
 		return
 	default:
 		sq.receiver <- sqMsg

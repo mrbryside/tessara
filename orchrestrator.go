@@ -1,7 +1,6 @@
 package tessara
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/IBM/sarama"
@@ -44,10 +43,6 @@ func newOrchestrator(
 func (o *orchestrator) Push(ctx context.Context, msg *sarama.ConsumerMessage) {
 	select {
 	case <-ctx.Done():
-		o.closeOnce.Do(func() {
-			close(o.receiver)
-			fmt.Println("session context done, stop push message")
-		})
 		return
 	default:
 		o.receiver <- msg
@@ -61,12 +56,10 @@ func (o *orchestrator) startReceive(ctx context.Context) {
 		case <-ctx.Done():
 			o.closeOnce.Do(func() {
 				close(o.receiver)
-				fmt.Println("session context done, stop orchreatrator receive message")
 			})
 			return
 		case msg, ok := <-o.receiver:
 			if !ok {
-				fmt.Println("orchrestrator receiver channel closed")
 				return
 			}
 			msb := newMessageBuffer(msg.Offset)

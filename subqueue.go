@@ -63,10 +63,6 @@ func newSubqueues(ctx context.Context, rh retryableHandler, memoryBufferSize uin
 func (s *subqueue) Push(ctx context.Context, sqMsg subqueueMessage) {
 	select {
 	case <-ctx.Done():
-		s.closeOnce.Do(func() {
-			close(s.receiver)
-			fmt.Println("session context done, stop push message to subqueue")
-		})
 		return
 	default:
 		s.receiver <- sqMsg
@@ -78,12 +74,12 @@ func (s *subqueue) startHandleMessage(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			close(s.receiver)
-			fmt.Println("stop handle message due to context done")
-			return
+			s.closeOnce.Do(func() {
+				close(s.receiver)
+				return
+			})
 		case msg, ok := <-s.receiver:
 			if !ok {
-				fmt.Println("subqueue receiver channel closed")
 				return
 			}
 			start := time.Now()
