@@ -58,11 +58,14 @@ func newSubqueues(ctx context.Context, rh retryableHandler, memoryBufferSize uin
 
 // Push pushes a subqueue message to the subqueue receiver channel
 func (s *subqueue) Push(ctx context.Context, sqMsg subqueueMessage) {
-	select {
-	case <-ctx.Done():
-		return
-	default:
-		s.receiver <- sqMsg
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case s.receiver <- sqMsg:
+		default:
+			time.Sleep(10 * time.Millisecond)
+		}
 	}
 }
 

@@ -1,6 +1,8 @@
 package tessara
 
 import (
+	"time"
+
 	"github.com/IBM/sarama"
 	"golang.org/x/net/context"
 )
@@ -37,11 +39,14 @@ func newOrchestrator(
 
 // Push pushes a message to the orchestrator
 func (o *orchestrator) Push(ctx context.Context, msg *sarama.ConsumerMessage) {
-	select {
-	case <-ctx.Done():
-		return
-	default:
-		o.receiver <- msg
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case o.receiver <- msg:
+		default:
+			time.Sleep(10 * time.Millisecond)
+		}
 	}
 }
 

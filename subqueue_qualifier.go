@@ -2,6 +2,7 @@ package tessara
 
 import (
 	"context"
+	"time"
 )
 
 // qualifier is an interface that defines the Qualify method.
@@ -53,11 +54,14 @@ func (sq *subqueueQualifier) StartQualify(ctx context.Context) {
 
 // Push pushes a message to the orchestrator
 func (sq *subqueueQualifier) Push(ctx context.Context, sqMsg subqueueMessage) {
-	select {
-	case <-ctx.Done():
-		return
-	default:
-		sq.receiver <- sqMsg
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case sq.receiver <- sqMsg:
+		default:
+			time.Sleep(10 * time.Millisecond)
+		}
 	}
 }
 
