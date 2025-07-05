@@ -66,14 +66,18 @@ func (ch *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 	// consume message from channel and push message to orchestrator
 	for {
 		select {
+		case <-session.Context().Done():
+			return nil
+
+		case errFromChan := <-commitGiveUpErrorChan:
+			return errors.Join(errFromChan, errors.New("[consumerHandler.ConsumeClaim]: skip processing message due to commit exceed give up time."))
+
 		case msg, ok := <-claim.Messages():
 			if !ok {
 				return nil
 			}
 			ort.Push(session.Context(), msg)
 
-		case errFromChan := <-commitGiveUpErrorChan:
-			return errors.Join(errFromChan, errors.New("[consumerHandler.ConsumeClaim]: skip processing message due to commit exceed give up time."))
 		}
 	}
 }
