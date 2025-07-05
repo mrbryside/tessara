@@ -86,7 +86,13 @@ func (c consumer) consume(ctx context.Context, cg sarama.ConsumerGroup) {
 		for {
 			err := cg.Consume(ctx, []string{c.consumerConfig.topic}, c.consumerGroupHandler)
 			if err != nil {
+				if errors.Is(err, sarama.ErrClosedConsumerGroup) {
+					return
+				}
 				log.Panicf("unable to consume: %s", err.Error())
+			}
+			if ctx.Err() != nil {
+				return
 			}
 		}
 	}()

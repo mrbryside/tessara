@@ -57,8 +57,8 @@ func (ch *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 
 	defer func() {
 		ort.Close()
-		for _, subqueue := range sqs {
-			subqueue.Close()
+		for _, sq := range sqs {
+			sq.Close()
 		}
 		sqq.Close()
 	}()
@@ -77,7 +77,6 @@ func (ch *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 				return nil
 			}
 			ort.Push(session.Context(), msg)
-
 		}
 	}
 }
