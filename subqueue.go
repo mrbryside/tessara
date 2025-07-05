@@ -97,7 +97,7 @@ func (s *subqueue) startHandleMessage(ctx context.Context) {
 			metric.IncrementSubqueueMessageProcessingCount(s.id)
 
 			logger.Debug().
-				Str("message", string(msg.consumerMessage.Value)).
+				Any("message", msg.consumerMessage.Value).
 				Msg("handling message")
 
 			// perform
@@ -108,7 +108,7 @@ func (s *subqueue) startHandleMessage(ctx context.Context) {
 			}
 			msg.messageBuffer.MarkSuccess()
 			logger.Debug().
-				Str("message", string(msg.consumerMessage.Value)).
+				Any("message", msg.consumerMessage.Value).
 				Msg("message proceeded and marked successfully")
 
 			elapse := time.Since(start)
