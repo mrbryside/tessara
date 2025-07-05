@@ -71,3 +71,8 @@ func getQualifier(qualifierMode string) qualifier {
 		panic("invalid qualifier mode")
 	}
 }
+
+// Close closes the subqueue qualifier receiver channel
+func (sq *subqueueQualifier) Close() {
+	close(sq.receiver)
+}

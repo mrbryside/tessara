@@ -16,16 +16,14 @@ type consumerHandler struct {
 	consumerConfig consumerConfig
 
 	// commitGiveUpErrorChan is a channel that receive error from comiiter when exceed commit give up time
-	commitGiveUpErrorChan chan error
 }
 
 // newConsumerGroupHandler creates a new consumer handler
 func newConsumerGroupHandler(mh messageHandler, eh errorHandler, cfg consumerConfig) *consumerHandler {
 	ch := &consumerHandler{
-		messageHandler:        mh,
-		errorHandler:          eh,
-		consumerConfig:        cfg,
-		commitGiveUpErrorChan: make(chan error),
+		messageHandler: mh,
+		errorHandler:   eh,
+		consumerConfig: cfg,
 	}
 
 	return ch
@@ -46,13 +44,23 @@ func (ch *consumerHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
 
 // ConsumeClaim this is main consume loop will call automatically by sarama when consumer receives a message
 func (ch *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	// create channel for receive error from comitter
+	commitGiveUpErrorChan := make(chan error)
 	// prepare orchestrator
 	mb := newMemoryBuffer(session.Context(), ch.consumerConfig.bufferSize, ch.consumerConfig.waterMarkUpdateInterval, ch.consumerConfig.pushMessageBlockingInterval)
-	cm := newCommitter(session.Context(), ch.commitGiveUpErrorChan, ch.errorHandler, mb, session, claim, ch.consumerConfig.commitInterval, ch.consumerConfig.commitGiveUpInterval, ch.consumerConfig.commitGiveUpTime)
+	cm := newCommitter(session.Context(), commitGiveUpErrorChan, ch.errorHandler, mb, session, claim, ch.consumerConfig.commitInterval, ch.consumerConfig.commitGiveUpInterval, ch.consumerConfig.commitGiveUpTime)
 	rh := newRetryableHandler(ch.messageHandler, ch.consumerConfig.maxRetry, ch.consumerConfig.retryMultiplier)
 	sqs := newSubqueues(session.Context(), rh, ch.consumerConfig.bufferSize, ch.consumerConfig.subqueueNumber)
 	sqq := newSubqueueQualifier(session.Context(), sqs, ch.consumerConfig.subqueueMode, ch.consumerConfig.bufferSize)
 	ort := newOrchestrator(session.Context(), mb, sqq, cm, ch.consumerConfig.bufferSize)
+
+	defer func() {
+		ort.Close()
+		for _, subqueue := range sqs {
+			subqueue.Close()
+		}
+		sqq.Close()
+	}()
 
 	// consume message from channel and push message to orchestrator
 	for {
@@ -63,7 +71,7 @@ func (ch *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 			}
 			ort.Push(session.Context(), msg)
 
-		case errFromChan := <-ch.commitGiveUpErrorChan:
+		case errFromChan := <-commitGiveUpErrorChan:
 			return errors.Join(errFromChan, errors.New("[consumerHandler.ConsumeClaim]: skip processing message due to commit exceed give up time."))
 		}
 	}

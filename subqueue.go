@@ -96,3 +96,8 @@ func (s *subqueue) startHandleMessage(ctx context.Context) {
 		}
 	}
 }
+
+// Close closes the subqueue receiver channel
+func (s *subqueue) Close() {
+	close(s.receiver)
+}

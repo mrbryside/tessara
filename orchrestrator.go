@@ -69,3 +69,8 @@ func (o *orchestrator) startReceive(ctx context.Context) {
 		}
 	}
 }
+
+// Close closes the orchestrator receiver channel
+func (o *orchestrator) Close() {
+	close(o.receiver)
+}
