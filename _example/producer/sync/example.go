@@ -1,13 +1,16 @@
 package main
 
 import (
-	"log"
 	"time"
 
 	"github.com/mrbryside/tessara"
+	"github.com/mrbryside/tessara/logger"
 )
 
 func main() {
+	// init logger
+	logger.Init()
+
 	brokers := []string{"host.docker.internal:9092"}
 	topic := "example-topic"
 
@@ -26,7 +29,7 @@ func main() {
 	}
 	_, _, err := sp.Produce(msg)
 	if err != nil {
-		log.Println("unable to produce message error:", err.Error())
+		logger.Debug().Err(err).Msg("unable to produce message")
 	}
 
 }

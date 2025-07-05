@@ -1,6 +1,10 @@
 package tessara
 
-import "time"
+import (
+	"time"
+
+	"github.com/mrbryside/tessara/logger"
+)
 
 // consumerConfig represents the configuration for a consumer and sarama config that will be transformed into a sarama config.
 type consumerConfig struct {
@@ -61,7 +65,7 @@ consumer configuration
 // WithBufferSize sets the buffer size for the consumer.
 func (c consumerConfig) WithBufferSize(bufferSize uint64) consumerConfig {
 	if bufferSize <= 0 {
-		panic("buffer size must be greater than 0")
+		logger.Panic().Msg("buffer size must be greater than 0")
 	}
 	c.bufferSize = bufferSize
 	return c
@@ -82,7 +86,7 @@ func (c consumerConfig) WithKeyDistributeMode() consumerConfig {
 // WithCommitGiveUpInterval sets the commit give up interval for the consumer.
 func (c consumerConfig) WithCommitGiveUpInterval(commitGiveUpInterval time.Duration) consumerConfig {
 	if commitGiveUpInterval <= 0 {
-		panic("commit give up interval must be greater than 0")
+		logger.Panic().Msg("commit give up interval must be greater than 0")
 	}
 	c.commitGiveUpInterval = commitGiveUpInterval
 	return c
@@ -91,7 +95,7 @@ func (c consumerConfig) WithCommitGiveUpInterval(commitGiveUpInterval time.Durat
 // WithCommitGiveUpTime sets the commit give up time for the consumer.
 func (c consumerConfig) WithCommitGiveUpTime(commitGiveUpTime time.Duration) consumerConfig {
 	if commitGiveUpTime <= 0 {
-		panic("commit give up interval must be greater than 0")
+		logger.Panic().Msg("commit give up time must be greater than 0")
 	}
 	c.commitGiveUpTime = commitGiveUpTime
 	return c
@@ -100,7 +104,7 @@ func (c consumerConfig) WithCommitGiveUpTime(commitGiveUpTime time.Duration) con
 // WithCommitInterval sets the commit interval for the consumer.
 func (c consumerConfig) WithCommitInterval(commitInterval time.Duration) consumerConfig {
 	if commitInterval <= 0 {
-		panic("commit interval must be greater than 0")
+		logger.Panic().Msg("commit interval must be greater than 0")
 	}
 	c.commitInterval = commitInterval
 	return c
@@ -109,10 +113,10 @@ func (c consumerConfig) WithCommitInterval(commitInterval time.Duration) consume
 // WithRetry sets the retry configuration for the consumer.
 func (c consumerConfig) WithRetry(maxRetry int, retryMultiplier float64) consumerConfig {
 	if maxRetry < 0 {
-		panic("max retry must be greater than or equal to 0")
+		logger.Panic().Msg("max retry must be greater than or equal to 0")
 	}
 	if retryMultiplier <= 0 {
-		panic("retry multiplier must be greater than 0")
+		logger.Panic().Msg("retry multiplier must be greater than 0")
 	}
 	c.maxRetry = maxRetry
 	c.retryMultiplier = retryMultiplier
@@ -123,7 +127,7 @@ func (c consumerConfig) WithRetry(maxRetry int, retryMultiplier float64) consume
 // WithSubqueue sets the subqueue number for the consumer.
 func (c consumerConfig) WithSubqueue(subqueueNumber int) consumerConfig {
 	if subqueueNumber <= 0 {
-		panic("subqueue number must be greater than 0")
+		logger.Panic().Msg("subqueue number must be greater than 0")
 	}
 	c.subqueueNumber = subqueueNumber
 	return c
@@ -138,7 +142,7 @@ sarama config functions, config below will transform to sarama configuration to 
 // WithSASL sets the SASL configuration for the consumer.
 func (c consumerConfig) WithSASL(username, password string) consumerConfig {
 	if username == "" || password == "" {
-		panic("username and password must not be empty")
+		logger.Panic().Msg("username and password must not be empty")
 	}
 	c.saramaConfig = append(c.saramaConfig, sasl{
 		Username: username,

@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
+	"errors"
 	"math/rand"
 	"net/http"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog/log"
 
 	"github.com/mrbryside/tessara"
+	"github.com/mrbryside/tessara/logger"
 )
 
 type Handler struct{}
@@ -18,33 +19,37 @@ type Handler struct{}
 func (h Handler) Perform(pm tessara.PerformMessage) error {
 	randomSleep := time.Duration(rand.Intn(600)) * time.Millisecond
 	randError := rand.Intn(100)
-	if string(pm.Key) == "error ja" {
-		return fmt.Errorf("error from error ja")
-	}
 	if randError < 10 {
-		return fmt.Errorf("error from random")
+		return errors.New("error from random")
 	}
 	time.Sleep(randomSleep)
+	log.Info().Msg("Message Proceed")
 	return nil
 }
 
 func (h Handler) Fallback(pm tessara.PerformMessage, err error) {
-	fmt.Println("handle error!")
-	fmt.Println(err)
-	// log.Panic("panic because error ja: err:", err.Error())
+	logger.Debug().
+		Str("topic", string(pm.Topic)).
+		Int32("partition", pm.Partition).
+		Msg("fallback triggered!")
 }
 
 type MyErrorHandler struct{}
 
 func (mh MyErrorHandler) HandleCommitGiveUp(topic string, partition int32) {
-	log.Println("this my error give up topic: ", topic, "partition:", partition)
+	log.Debug().
+		Str("topic", topic).
+		Int32("partition", partition).
+		Msg("commit give up handle triggered!")
 }
 
 func main() {
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
-		log.Println("Metrics server running on :2112/metrics")
-		log.Fatal(http.ListenAndServe(":2112", nil))
+		err := http.ListenAndServe(":2112", nil)
+		if err != nil {
+			log.Panic().Err(err).Msg("failed to start metrics server")
+		}
 	}()
 
 	brokers := []string{"host.docker.internal:9092"}
@@ -64,6 +69,8 @@ func main() {
 		WithCommitGiveUpInterval(10*time.Second).
 		WithCommitGiveUpTime(40*time.Second).
 		WithRetry(5, 1.5)
+
+	log.Info().Msg("consumer started")
 
 	tessara.
 		NewConsumer(cfg, Handler{}).

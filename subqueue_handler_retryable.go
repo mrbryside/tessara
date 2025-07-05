@@ -1,11 +1,11 @@
 package tessara
 
 import (
-	"log"
 	"time"
 
 	"github.com/cenkalti/backoff"
 
+	"github.com/mrbryside/tessara/logger"
 	"github.com/mrbryside/tessara/metric"
 )
 
@@ -52,7 +52,10 @@ func (h retryableHandler) performWithRetry(pm PerformMessage) error {
 	backoffFormula.Multiplier = h.retryMultiplier
 	backOffWithMaxRetries := backoff.WithMaxRetries(backoffFormula, uint64(h.maxRetry))
 	notify := func(err error, nextWait time.Duration) {
-		log.Printf("perform failed: %v — retrying in %s", err, nextWait)
+		logger.Debug().
+			Err(err).
+			Str("retrying in", nextWait.String()).
+			Msg("perform message failed waiting to retry")
 	}
 
 	op := func() error {

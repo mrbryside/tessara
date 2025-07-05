@@ -13,6 +13,8 @@ type orchestrator struct {
 	memoryBuffer      *memoryBuffer
 	subqueueQualifier *subqueueQualifier
 	committer         *committer
+
+	pushMessageBlockingInterval time.Duration
 }
 
 // newOrchestrator creates a new orchestrator instance.
@@ -22,13 +24,15 @@ func newOrchestrator(
 	sq *subqueueQualifier,
 	cm *committer,
 	memoryBufferSize uint64,
+	pushMessageBlockingInterval time.Duration,
 ) *orchestrator {
 	orchestratorChannelBufferSize := memoryBufferSize
 	o := &orchestrator{
-		receiver:          make(chan *sarama.ConsumerMessage, orchestratorChannelBufferSize),
-		memoryBuffer:      mb,
-		subqueueQualifier: sq,
-		committer:         cm,
+		receiver:                    make(chan *sarama.ConsumerMessage, orchestratorChannelBufferSize),
+		memoryBuffer:                mb,
+		subqueueQualifier:           sq,
+		committer:                   cm,
+		pushMessageBlockingInterval: pushMessageBlockingInterval,
 	}
 	go func() {
 		o.startReceive(ctx)
@@ -44,8 +48,9 @@ func (o *orchestrator) Push(ctx context.Context, msg *sarama.ConsumerMessage) {
 		case <-ctx.Done():
 			return
 		case o.receiver <- msg:
+			return
 		default:
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(o.pushMessageBlockingInterval)
 		}
 	}
 }
@@ -73,9 +78,4 @@ func (o *orchestrator) startReceive(ctx context.Context) {
 			})
 		}
 	}
-}
-
-// Close closes the orchestrator receiver channel
-func (o *orchestrator) Close() {
-	close(o.receiver)
 }

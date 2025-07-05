@@ -36,8 +36,7 @@ func setDefaultSetting(c sarama.Config) sarama.Config {
 
 	// default metadata config
 	c.Metadata.Retry.Max = 10
-	c.Metadata.Retry.Backoff = 1 * time.Second
-	// c.Metadata.Retry.BackoffFunc = func(retries, maxRetries int) time.Duration {}
+	c.Metadata.Retry.Backoff = 250 * time.Millisecond
 
 	// default producer config
 	c.Producer.RequiredAcks = sarama.WaitForAll

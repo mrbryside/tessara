@@ -1,8 +1,6 @@
 package tessara
 
-import (
-	"log"
-)
+import "github.com/mrbryside/tessara/logger"
 
 // errorHandler is an interface for handling errors
 type errorHandler interface {
@@ -19,5 +17,8 @@ func newLoggingErrorHandler() loggingErrorHandler {
 
 // HandleCommitGiveUp logs the commit give up event
 func (lh loggingErrorHandler) HandleCommitGiveUp(topic string, partition int32) {
-	log.Println("commit give up for ")
+	logger.Debug().
+		Str("topic", topic).
+		Int32("partition", partition).
+		Msg("commit give up")
 }

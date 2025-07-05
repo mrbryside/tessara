@@ -2,12 +2,12 @@ package tessara
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"golang.org/x/net/context"
 
 	"github.com/IBM/sarama"
+	"github.com/mrbryside/tessara/logger"
 )
 
 // committer is a struct that implements the sarama.ConsumerGroupHandler interface
@@ -23,12 +23,13 @@ type committer struct {
 	claim   sarama.ConsumerGroupClaim
 
 	// comitter
-	commitInterval        time.Duration
-	commitGiveupInterval  time.Duration
-	commitGiveUpTime      time.Duration
-	commitGiveUpErrorChan chan error
-	latestCommittedOffset int64
-	lastestCommittedAt    time.Time
+	commitInterval              time.Duration
+	commitGiveupInterval        time.Duration
+	commitGiveUpTime            time.Duration
+	commitGiveUpErrorChan       chan error
+	latestCommittedOffset       int64
+	lastestCommittedAt          time.Time
+	pushMessageBlockingInterval time.Duration
 }
 
 // newCommitter creates a new Committer instance
@@ -42,18 +43,20 @@ func newCommitter(
 	commitInterval time.Duration,
 	commitGiveupInterval time.Duration,
 	commitGiveUpTime time.Duration,
+	pushMessageBlockingInterval time.Duration,
 ) *committer {
 	c := &committer{
-		commitGiveUpErrorChan: commitGiveUpErrorChan,
-		errorHandler:          errorHandler,
-		session:               session,
-		claim:                 claim,
-		memoryBuffer:          mb,
-		commitInterval:        commitInterval,
-		commitGiveupInterval:  commitGiveupInterval,
-		commitGiveUpTime:      commitGiveUpTime,
-		latestCommittedOffset: -1,
-		lastestCommittedAt:    time.Now(),
+		commitGiveUpErrorChan:       commitGiveUpErrorChan,
+		errorHandler:                errorHandler,
+		session:                     session,
+		claim:                       claim,
+		memoryBuffer:                mb,
+		commitInterval:              commitInterval,
+		commitGiveupInterval:        commitGiveupInterval,
+		commitGiveUpTime:            commitGiveUpTime,
+		latestCommittedOffset:       -1,
+		lastestCommittedAt:          time.Now(),
+		pushMessageBlockingInterval: pushMessageBlockingInterval,
 	}
 
 	go func() {
@@ -83,7 +86,11 @@ func (c *committer) startCommitIntervalAndCommitGiveUpInterval(ctx context.Conte
 				c.session.MarkOffset(c.claim.Topic(), c.claim.Partition(), waterMarkOffsetForCommit, "")
 				c.latestCommittedOffset = waterMarkOffset
 				c.lastestCommittedAt = time.Now()
-				fmt.Println("Offset committed:", waterMarkOffsetForCommit)
+				logger.Debug().
+					Str("topic", c.claim.Topic()).
+					Int32("partition", c.claim.Partition()).
+					Int64("offset", waterMarkOffsetForCommit).
+					Msg("offset committed")
 			}
 
 		case <-tickerCommitGiveUpInterval.C:
@@ -97,11 +104,15 @@ func (c *committer) startCommitIntervalAndCommitGiveUpInterval(ctx context.Conte
 
 // pushErrorToGiveUpErrorChannel pushes error to give up error channel
 func (c *committer) pushErrorToGiveUpErrorChannel(ctx context.Context) {
-	select {
-	case <-ctx.Done():
-		return
-	default:
-		c.commitGiveUpErrorChan <- errors.New("error commit give up")
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case c.commitGiveUpErrorChan <- errors.New("error commit give up"):
+			return
+		default:
+			time.Sleep(c.pushMessageBlockingInterval)
+		}
 	}
 
 }

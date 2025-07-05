@@ -3,7 +3,6 @@ package tessara
 import (
 	"context"
 	"errors"
-	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -12,6 +11,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/mrbryside/tessara/logger"
 	"github.com/mrbryside/tessara/metric"
 )
 
@@ -47,38 +47,45 @@ func NewConsumer(cfg consumerConfig, mh messageHandler) consumer {
 	}
 }
 
+// WithErrorHandler sets the error handler for the consumer group
+func (c consumer) WithErrorHandler(eh errorHandler) consumer {
+	c.consumerGroupHandler.errorHandler = eh
+	return c
+}
+
 // StartConsume starts the consumer group and will be block until context is cancelled or signal is received
 func (c consumer) StartConsume(ctx context.Context) {
+	// init log
+	logger.Init()
+
+	// convert config to sarama config
 	saramaCfg := c.consumerConfig.ToSaramaConfig().Config()
 	consumerGroup, err := sarama.NewConsumerGroup(c.consumerConfig.brokers, c.consumerConfig.consumerGroupID, saramaCfg)
 	if err != nil {
-		log.Panicf("[Consumer.StartConsume]: unable to create sarama consumer group due to %s", err.Error())
+		logger.Panic().Err(err).Msg("unable to create sarama consumer group")
 	}
 
+	// start consume group this line will return sync wait group
 	wg := c.consume(ctx, consumerGroup)
-	log.Println("consumer started!")
+	logger.Debug().Msg("consumer started!")
 
-	// handle signals, context cancel
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
 	select {
 	case <-ctx.Done():
-		log.Println("[Consumer.StartConsume]: terminating via context cancelled")
+		logger.Debug().Msg("terminating consumer via context cancelled")
 	case <-signals:
-		log.Println("[Consumer.StartConsume]: terminating via signal")
+		logger.Debug().Msg("terminating consumer consume via signal")
 	}
+
+	// waiting for consume done
 	wg.Wait()
 
 	if err = consumerGroup.Close(); err != nil {
-		log.Panicf("Error closing client: %v", err)
+		logger.Panic().Err(err).Msg("error closing client")
 	}
-}
-
-// WithErrorHandler sets the error handler for the consumer group
-func (c consumer) WithErrorHandler(eh errorHandler) consumer {
-	c.consumerGroupHandler.errorHandler = eh
-	return c
+	logger.Debug().Msg("consumer closed!")
 }
 
 // consume starts consuming messages from the Kafka topic with error watching
@@ -96,7 +103,7 @@ func (c consumer) consume(ctx context.Context, cg sarama.ConsumerGroup) *sync.Wa
 				if errors.Is(err, sarama.ErrClosedConsumerGroup) {
 					return
 				}
-				log.Panicf("unable to consume: %s", err.Error())
+				logger.Panic().Err(err).Msg("unable to consume")
 			}
 			if ctx.Err() != nil {
 				return
@@ -113,7 +120,7 @@ func startErrorWatch(cg sarama.ConsumerGroup) {
 			continue
 		}
 		if errors.Is(err, sarama.ErrOffsetOutOfRange) {
-			log.Panic("[errorWatch]: error offset out of range, terminating...")
+			logger.Panic().Err(err).Msg("error offset out of range")
 		}
 	}
 }

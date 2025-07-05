@@ -3,6 +3,8 @@ package tessara
 import (
 	"context"
 	"time"
+
+	"github.com/mrbryside/tessara/logger"
 )
 
 // qualifier is an interface that defines the Qualify method.
@@ -15,18 +17,26 @@ type subqueueQualifier struct {
 	receiver  chan subqueueMessage
 	qualifier qualifier
 	subqueues []*subqueue
+
+	pushMessageBlockingInterval time.Duration
 }
 
 // newSubqueueQualifier creates a new SubqueueQualifier instance.
-func newSubqueueQualifier(ctx context.Context, sqs []*subqueue, qualifierMode string, memoryBufferSize uint64) *subqueueQualifier {
+func newSubqueueQualifier(ctx context.Context,
+	sqs []*subqueue,
+	qualifierMode string,
+	memoryBufferSize uint64,
+	pushMessageBlockingInterval time.Duration,
+) *subqueueQualifier {
 	if len(sqs) == 0 {
 		panic("subqueue list is empty")
 	}
 	subqueueQualifierChannelBufferSize := memoryBufferSize
 	sq := &subqueueQualifier{
-		receiver:  make(chan subqueueMessage, subqueueQualifierChannelBufferSize),
-		qualifier: getQualifier(qualifierMode),
-		subqueues: sqs,
+		receiver:                    make(chan subqueueMessage, subqueueQualifierChannelBufferSize),
+		qualifier:                   getQualifier(qualifierMode),
+		subqueues:                   sqs,
+		pushMessageBlockingInterval: pushMessageBlockingInterval,
 	}
 
 	go func() {
@@ -59,8 +69,9 @@ func (sq *subqueueQualifier) Push(ctx context.Context, sqMsg subqueueMessage) {
 		case <-ctx.Done():
 			return
 		case sq.receiver <- sqMsg:
+			return
 		default:
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(sq.pushMessageBlockingInterval)
 		}
 	}
 }
@@ -72,11 +83,7 @@ func getQualifier(qualifierMode string) qualifier {
 	case "key_distribute":
 		return newKeyDistributeQualifier()
 	default:
-		panic("invalid qualifier mode")
+		logger.Panic().Msg("invalid qualifier mode")
 	}
-}
-
-// Close closes the subqueue qualifier receiver channel
-func (sq *subqueueQualifier) Close() {
-	close(sq.receiver)
+	return nil
 }

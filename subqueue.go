@@ -2,11 +2,11 @@ package tessara
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/IBM/sarama"
 
+	"github.com/mrbryside/tessara/logger"
 	"github.com/mrbryside/tessara/metric"
 )
 
@@ -21,15 +21,23 @@ type subqueue struct {
 	id               int
 	receiver         chan subqueueMessage
 	retryableHandler retryableHandler
+
+	pushMessageBlockingInterval time.Duration
 }
 
 // newSubqueue creates a new subqueue instance
-func newSubqueue(ctx context.Context, id int, rh retryableHandler, memoryBufferSize uint64) *subqueue {
+func newSubqueue(ctx context.Context,
+	id int,
+	rh retryableHandler,
+	memoryBufferSize uint64,
+	pushMessageBlockingInterval time.Duration,
+) *subqueue {
 	subqueueChannelBufferSize := memoryBufferSize
 	sq := &subqueue{
-		id:               id,
-		receiver:         make(chan subqueueMessage, subqueueChannelBufferSize),
-		retryableHandler: rh.withFromSubqueueID(id),
+		id:                          id,
+		receiver:                    make(chan subqueueMessage, subqueueChannelBufferSize),
+		retryableHandler:            rh.withFromSubqueueID(id),
+		pushMessageBlockingInterval: pushMessageBlockingInterval,
 	}
 
 	go func() {
@@ -43,10 +51,15 @@ func newSubqueue(ctx context.Context, id int, rh retryableHandler, memoryBufferS
 }
 
 // newSubqueues creates a new subqueue instances
-func newSubqueues(ctx context.Context, rh retryableHandler, memoryBufferSize uint64, subqueueNumber int) []*subqueue {
+func newSubqueues(ctx context.Context,
+	rh retryableHandler,
+	memoryBufferSize uint64,
+	pushMessageBlockingInterval time.Duration,
+	subqueueNumber int,
+) []*subqueue {
 	var sqs []*subqueue
 	for i := range subqueueNumber {
-		sqs = append(sqs, newSubqueue(ctx, i+1, rh, memoryBufferSize))
+		sqs = append(sqs, newSubqueue(ctx, i+1, rh, memoryBufferSize, pushMessageBlockingInterval))
 		// update metric
 		metric.InitSubqueueMessageProcessingCount(i + 1)
 		metric.InitSubqueueMessageProcessedCount(i + 1)
@@ -63,8 +76,9 @@ func (s *subqueue) Push(ctx context.Context, sqMsg subqueueMessage) {
 		case <-ctx.Done():
 			return
 		case s.receiver <- sqMsg:
+			return
 		default:
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(s.pushMessageBlockingInterval)
 		}
 	}
 }
@@ -80,8 +94,11 @@ func (s *subqueue) startHandleMessage(ctx context.Context) {
 				return
 			}
 			start := time.Now()
-			fmt.Println("handle message msg:", string(msg.consumerMessage.Value))
 			metric.IncrementSubqueueMessageProcessingCount(s.id)
+
+			logger.Debug().
+				Str("message", string(msg.consumerMessage.Value)).
+				Msg("handling message")
 
 			// perform
 			err := s.retryableHandler.Perform(toPerformMessage(msg.consumerMessage))
@@ -90,7 +107,9 @@ func (s *subqueue) startHandleMessage(ctx context.Context) {
 				continue
 			}
 			msg.messageBuffer.MarkSuccess()
-			fmt.Println("mark success! msg:", string(msg.consumerMessage.Value))
+			logger.Debug().
+				Str("message", string(msg.consumerMessage.Value)).
+				Msg("message proceeded and marked successfully")
 
 			elapse := time.Since(start)
 			metric.UpdateSubqueueMessageProcessingTime(elapse)
@@ -98,9 +117,4 @@ func (s *subqueue) startHandleMessage(ctx context.Context) {
 			metric.DecrementSubqueueMessageProcessingCount(s.id)
 		}
 	}
-}
-
-// Close closes the subqueue receiver channel
-func (s *subqueue) Close() {
-	close(s.receiver)
 }

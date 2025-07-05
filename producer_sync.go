@@ -1,9 +1,9 @@
 package tessara
 
 import (
-	"log"
-
 	"github.com/IBM/sarama"
+
+	"github.com/mrbryside/tessara/logger"
 )
 
 // syncProducer represents a synchronous producer.
@@ -15,7 +15,7 @@ type syncProducer struct {
 func NewSyncProducer(config producerConfig) syncProducer {
 	producer, err := sarama.NewSyncProducer(config.brokers, config.ToSaramaConfig().Config())
 	if err != nil {
-		log.Fatalf("unable to create sync producer instance error: %v", err)
+		logger.Panic().Err(err).Msg("unable to create sync producer instance")
 	}
 	return syncProducer{
 		Producer: producer,
