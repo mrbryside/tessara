@@ -43,8 +43,9 @@ func (ch *consumerHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
 }
 
 // ConsumeClaim this is main consume loop will call automatically by sarama when consumer receives a message
+// it's run in multiple goroutines by sarama)
 func (ch *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	// create channel for receive error from comitter
+	// create channel for receive error from comitter it's should be here because consumeClaim is run in multiple goroutine
 	commitGiveUpErrorChan := make(chan error)
 	// prepare orchestrator
 	mb := newMemoryBuffer(session.Context(), ch.consumerConfig.bufferSize, ch.consumerConfig.waterMarkUpdateInterval, ch.consumerConfig.pushMessageBlockingInterval)
