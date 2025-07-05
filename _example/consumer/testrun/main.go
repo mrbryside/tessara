@@ -14,8 +14,10 @@ import (
 	"github.com/mrbryside/tessara/logger"
 )
 
+// Handler represents a custom handler for handling perform events and fallback events.
 type Handler struct{}
 
+// Perform represents a custom handler for handling perform events.
 func (h Handler) Perform(pm tessara.PerformMessage) error {
 	randomSleep := time.Duration(rand.Intn(600)) * time.Millisecond
 	randError := rand.Intn(100)
@@ -27,6 +29,7 @@ func (h Handler) Perform(pm tessara.PerformMessage) error {
 	return nil
 }
 
+// Fallback represents a custom handler for handling fallback events.
 func (h Handler) Fallback(pm tessara.PerformMessage, err error) {
 	logger.Debug().
 		Str("topic", string(pm.Topic)).
@@ -34,8 +37,11 @@ func (h Handler) Fallback(pm tessara.PerformMessage, err error) {
 		Msg("fallback triggered!")
 }
 
+// MyErrorHandler represents a custom error handler for handling commit give up events.
 type MyErrorHandler struct{}
 
+// HandleCommitGiveUp using for handle when message exceed commit give up time
+// you can use this function to handle the commit give up event
 func (mh MyErrorHandler) HandleCommitGiveUp(topic string, partition int32) {
 	log.Debug().
 		Str("topic", topic).
