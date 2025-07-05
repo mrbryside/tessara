@@ -65,6 +65,11 @@ func (c consumer) StartConsume(ctx context.Context) {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
+	// handle SIGUSR1 signal
+	sigusr1 := make(chan os.Signal, 1)
+	signal.Notify(sigusr1, syscall.SIGUSR1)
+
+	consumptionIsPaused := false
 	keepRunning := true
 	for keepRunning {
 		select {
@@ -74,6 +79,8 @@ func (c consumer) StartConsume(ctx context.Context) {
 		case <-signals:
 			log.Println("[Consumer.StartConsume]: terminating via signal")
 			keepRunning = false
+		case <-sigusr1:
+			toggleConsumptionFlow(consumerGroup, &consumptionIsPaused)
 		}
 	}
 	cancel()
@@ -119,4 +126,16 @@ func startErrorWatch(cg sarama.ConsumerGroup) {
 			log.Panic("[errorWatch]: error offset out of range, terminating...")
 		}
 	}
+}
+
+func toggleConsumptionFlow(cg sarama.ConsumerGroup, isPaused *bool) {
+	if *isPaused {
+		cg.ResumeAll()
+		log.Println("Resuming consumption")
+	} else {
+		cg.PauseAll()
+		log.Println("Pausing consumption")
+	}
+
+	*isPaused = !*isPaused
 }
