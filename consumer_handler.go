@@ -55,13 +55,15 @@ func (ch *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 	sqq := newSubqueueQualifier(session.Context(), sqs, ch.consumerConfig.subqueueMode, ch.consumerConfig.bufferSize)
 	ort := newOrchestrator(session.Context(), mb, sqq, cm, ch.consumerConfig.bufferSize)
 
-	defer func() {
-		ort.Close()
-		for _, sq := range sqs {
-			sq.Close()
-		}
-		sqq.Close()
-	}()
+	// defer func() {
+	// 	go func() {
+	// 		ort.Close()
+	// 		for _, sq := range sqs {
+	// 			sq.Close()
+	// 		}
+	// 		sqq.Close()
+	// 	}()
+	// }()
 
 	// consume message from channel and push message to orchestrator
 	for {
