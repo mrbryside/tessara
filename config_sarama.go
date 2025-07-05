@@ -33,7 +33,7 @@ func setDefaultSetting(c sarama.Config) sarama.Config {
 	c.Consumer.Return.Errors = true
 	c.Consumer.Retry.Backoff = 1 * time.Second
 	c.Consumer.Group.ResetInvalidOffsets = true
-	c.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.BalanceStrategyRoundRobin}
+	c.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRoundRobin()}
 
 	// default metadata config
 	c.Metadata.Retry.Max = 10
