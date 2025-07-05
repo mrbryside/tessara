@@ -84,6 +84,7 @@ func (c consumer) StartConsume(ctx context.Context) {
 	if err = consumerGroup.Close(); err != nil {
 		log.Panicf("Error closing client: %v", err)
 	}
+	log.Println("------------> close jaaaaaa")
 }
 
 // WithErrorHandler sets the error handler for the consumer group
