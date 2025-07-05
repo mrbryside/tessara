@@ -55,11 +55,7 @@ func (c consumer) StartConsume(ctx context.Context) {
 		log.Panicf("[Consumer.StartConsume]: unable to create sarama consumer group due to %s", err.Error())
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	c.consume(ctx, consumerGroup, wg)
-
+	wg := c.consume(ctx, consumerGroup)
 	log.Println("consumer started!")
 
 	// handle signals, context cancel
@@ -72,8 +68,6 @@ func (c consumer) StartConsume(ctx context.Context) {
 	case <-signals:
 		log.Println("[Consumer.StartConsume]: terminating via signal")
 	}
-	// cancel context and waiting for consume done
-	cancel()
 	wg.Wait()
 
 	if err = consumerGroup.Close(); err != nil {
@@ -88,7 +82,9 @@ func (c consumer) WithErrorHandler(eh errorHandler) consumer {
 }
 
 // consume starts consuming messages from the Kafka topic with error watching
-func (c consumer) consume(ctx context.Context, cg sarama.ConsumerGroup, wg *sync.WaitGroup) {
+func (c consumer) consume(ctx context.Context, cg sarama.ConsumerGroup) *sync.WaitGroup {
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
 		startErrorWatch(cg)
 	}()
@@ -106,8 +102,8 @@ func (c consumer) consume(ctx context.Context, cg sarama.ConsumerGroup, wg *sync
 				return
 			}
 		}
-
 	}()
+	return wg
 }
 
 // startErrorWatch starts watching for errors from the consumer group sarama will return to Errors() channel
