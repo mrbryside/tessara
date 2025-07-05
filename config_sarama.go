@@ -32,9 +32,12 @@ func setDefaultSetting(c sarama.Config) sarama.Config {
 	c.Consumer.Offsets.Initial = sarama.OffsetOldest
 	c.Consumer.Return.Errors = true
 	c.Consumer.Retry.Backoff = 1 * time.Second
+	c.Consumer.Group.ResetInvalidOffsets = true
+
+	// default metadata config
 	c.Metadata.Retry.Max = 10
+	c.Metadata.Retry.Backoff = 1 * time.Second
 	// c.Metadata.Retry.BackoffFunc = func(retries, maxRetries int) time.Duration {}
-	// saramaConfig.Consumer.Group.ResetInvalidOffsets = true | false
 
 	// default producer config
 	c.Producer.RequiredAcks = sarama.WaitForAll
