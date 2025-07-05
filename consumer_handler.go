@@ -67,14 +67,14 @@ func (ch *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 	for {
 		select {
 		case <-session.Context().Done():
-			return errors.New("context canceled")
+			return nil
 
 		case errFromChan := <-commitGiveUpErrorChan:
 			return errors.Join(errFromChan, errors.New("[consumerHandler.ConsumeClaim]: skip processing message due to commit exceed give up time."))
 
 		case msg, ok := <-claim.Messages():
 			if !ok {
-				return errors.New("context canceled")
+				return nil
 			}
 			ort.Push(session.Context(), msg)
 		}

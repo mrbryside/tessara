@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/IBM/sarama"
@@ -53,22 +54,31 @@ func (c consumer) StartConsume(ctx context.Context) {
 	if err != nil {
 		log.Panicf("[Consumer.StartConsume]: unable to create sarama consumer group due to %s", err.Error())
 	}
-	defer consumerGroup.Close()
 
-	// start consume
-	c.consume(ctx, consumerGroup)
+	ctx, cancel := context.WithCancel(ctx)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	c.consume(ctx, consumerGroup, wg)
 	log.Println("consumer started!")
 
 	// handle signals, context cancel
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
-	select {
-	case <-ctx.Done():
-		log.Println("[Consumer.StartConsume]: terminating via context cancelled")
-	case <-signals:
-		log.Println("[Consumer.StartConsume]: terminating via signal")
+	keepRunning := true
+	for keepRunning {
+		select {
+		case <-ctx.Done():
+			log.Println("[Consumer.StartConsume]: terminating via context cancelled")
+			keepRunning = false
+		case <-signals:
+			log.Println("[Consumer.StartConsume]: terminating via signal")
+			keepRunning = false
+		}
 	}
+	cancel()
+	wg.Wait()
+	consumerGroup.Close()
 }
 
 // WithErrorHandler sets the error handler for the consumer group
@@ -78,11 +88,12 @@ func (c consumer) WithErrorHandler(eh errorHandler) consumer {
 }
 
 // consume starts consuming messages from the Kafka topic with error watching
-func (c consumer) consume(ctx context.Context, cg sarama.ConsumerGroup) {
+func (c consumer) consume(ctx context.Context, cg sarama.ConsumerGroup, wg *sync.WaitGroup) {
 	go func() {
 		startErrorWatch(cg)
 	}()
 	go func() {
+		defer wg.Done()
 		for {
 			err := cg.Consume(ctx, []string{c.consumerConfig.topic}, c.consumerGroupHandler)
 			if err != nil {
