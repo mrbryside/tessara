@@ -2,9 +2,7 @@ package tessara
 
 import (
 	"errors"
-	"fmt"
 	"log"
-	"time"
 
 	"github.com/IBM/sarama"
 
@@ -56,21 +54,6 @@ func (ch *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, cla
 	sqs := newSubqueues(session.Context(), rh, ch.consumerConfig.bufferSize, ch.consumerConfig.subqueueNumber)
 	sqq := newSubqueueQualifier(session.Context(), sqs, ch.consumerConfig.subqueueMode, ch.consumerConfig.bufferSize)
 	ort := newOrchestrator(session.Context(), mb, sqq, cm, ch.consumerConfig.bufferSize)
-
-	defer func() {
-		go func() {
-			ort := ort
-			sqq := sqq
-			sqs := sqs
-			time.Sleep(20 * time.Second)
-			ort.Close()
-			for _, sq := range sqs {
-				sq.Close()
-			}
-			sqq.Close()
-			fmt.Println("destroied channel!!")
-		}()
-	}()
 
 	// consume message from channel and push message to orchestrator
 	for {
