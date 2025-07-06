@@ -861,7 +861,7 @@
           "useBackend": false
         }
       ],
-      "title": "Max Processing Time (seconds)",
+      "title": "Average Processing Time (seconds)",
       "type": "stat"
     }
   ],
