@@ -839,7 +839,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": ["max"],
+          "calcs": ["mean"],
           "fields": "",
           "values": false
         },
