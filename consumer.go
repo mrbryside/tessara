@@ -21,40 +21,46 @@ var (
 	}
 )
 
-// consumer represents a consumer instance
-type consumer struct {
-	consumerGroupHandler *consumerHandler
+var registerMetricsOnce sync.Once
+
+// Consumer represents a Consumer instance
+type Consumer struct {
+	consumerGroupHandler *consumerGroupHandler
 	consumerConfig       consumerConfig
 }
 
 // NewConsumer creates a new consumer instance
-func NewConsumer(cfg consumerConfig, mh messageHandler) consumer {
-	// register metics
-	prometheus.MustRegister(metric.MemoryBufferSize)
-	prometheus.MustRegister(metric.CurrentWaterMark)
-	prometheus.MustRegister(metric.CurrentBuffer)
-	prometheus.MustRegister(metric.PushToBufferWatingTime)
-	prometheus.MustRegister(metric.SubqueueCount)
-	prometheus.MustRegister(metric.SubqueueChannelBufferSize)
-	prometheus.MustRegister(metric.SubqueueMessageProcessedCount)
-	prometheus.MustRegister(metric.SubqueueMessageProcessingCount)
-	prometheus.MustRegister(metric.SubqueueMessageProcessingTime)
-	prometheus.MustRegister(metric.SubqueueMessageErrorCount)
+func NewConsumer(cfg consumerConfig, mh messageHandler) Consumer {
+	// register metrics
+	registerMetricsOnce.Do(func() {
+		if os.Getenv("TESSARA_REGISTER_METRICS") == "true" {
+			prometheus.MustRegister(metric.MemoryBufferSize)
+			prometheus.MustRegister(metric.CurrentWaterMark)
+			prometheus.MustRegister(metric.CurrentBuffer)
+			prometheus.MustRegister(metric.PushToBufferWatingTime)
+			prometheus.MustRegister(metric.SubqueueCount)
+			prometheus.MustRegister(metric.SubqueueChannelBufferSize)
+			prometheus.MustRegister(metric.SubqueueMessageProcessedCount)
+			prometheus.MustRegister(metric.SubqueueMessageProcessingCount)
+			prometheus.MustRegister(metric.SubqueueMessageProcessingTime)
+			prometheus.MustRegister(metric.SubqueueMessageErrorCount)
+		}
+	})
 
-	return consumer{
+	return Consumer{
 		consumerGroupHandler: newConsumerGroupHandler(mh, newLoggingErrorHandler(), cfg),
 		consumerConfig:       cfg,
 	}
 }
 
 // WithErrorHandler sets the error handler for the consumer group
-func (c consumer) WithErrorHandler(eh errorHandler) consumer {
+func (c Consumer) WithErrorHandler(eh errorHandler) Consumer {
 	c.consumerGroupHandler.errorHandler = eh
 	return c
 }
 
 // StartConsume starts the consumer group and will be block until context is cancelled or signal is received
-func (c consumer) StartConsume(ctx context.Context) {
+func (c Consumer) StartConsume(ctx context.Context) {
 	// init log
 	logger.Init()
 
@@ -89,7 +95,7 @@ func (c consumer) StartConsume(ctx context.Context) {
 }
 
 // consume starts consuming messages from the Kafka topic with error watching
-func (c consumer) consume(ctx context.Context, cg sarama.ConsumerGroup) *sync.WaitGroup {
+func (c Consumer) consume(ctx context.Context, cg sarama.ConsumerGroup) *sync.WaitGroup {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {

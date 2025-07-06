@@ -74,6 +74,7 @@ func main() {
 		WithCommitInterval(3*time.Second).
 		WithCommitGiveUpInterval(10*time.Second).
 		WithCommitGiveUpTime(40*time.Second).
+		WithBlockingInterval(10*time.Millisecond).
 		WithRetry(5, 1.5)
 
 	log.Info().Msg("consumer started")

@@ -11,8 +11,8 @@ import (
 
 // memoryBuffer is a struct that implements the sarama.ConsumerGroupHandler interface
 type memoryBuffer struct {
-	waterMarkUpdateInterval     time.Duration
-	pushMessageBlockingInterval time.Duration
+	waterMarkUpdateBlockingInterval time.Duration
+	pushMessageBlockingInterval     time.Duration
 
 	messageBuffers  []*messageBuffer
 	bufferSize      uint64
@@ -22,15 +22,15 @@ type memoryBuffer struct {
 }
 
 // newMemoryBuffer creates a new MemoryBuffer instance with the given buffer size.
-func newMemoryBuffer(ctx context.Context, bufferSize uint64, waterMarkUpdateInterval time.Duration, pushMessageBlockingInterval time.Duration) *memoryBuffer {
+func newMemoryBuffer(ctx context.Context, bufferSize uint64, waterMarkUpdateBlockingInterval time.Duration, pushMessageBlockingInterval time.Duration) *memoryBuffer {
 	mb := &memoryBuffer{
-		waterMarkUpdateInterval:     waterMarkUpdateInterval,
-		pushMessageBlockingInterval: pushMessageBlockingInterval,
-		messageBuffers:              make([]*messageBuffer, bufferSize),
-		bufferSize:                  bufferSize,
-		currentBuffer:               0,
-		waterMark:                   0,
-		waterMarkOffset:             -1,
+		waterMarkUpdateBlockingInterval: waterMarkUpdateBlockingInterval,
+		pushMessageBlockingInterval:     pushMessageBlockingInterval,
+		messageBuffers:                  make([]*messageBuffer, bufferSize),
+		bufferSize:                      bufferSize,
+		currentBuffer:                   0,
+		waterMark:                       0,
+		waterMarkOffset:                 -1,
 	}
 	// set default metric
 	metric.UpdateBufferSize(bufferSize)
@@ -43,13 +43,11 @@ func newMemoryBuffer(ctx context.Context, bufferSize uint64, waterMarkUpdateInte
 
 // waterMarkUpdater updates the water mark of the memory buffer.
 func (mb *memoryBuffer) waterMarkUpdater(ctx context.Context) {
-	ticker := time.NewTicker(mb.waterMarkUpdateInterval)
-	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
+		default:
 			// need this condition to avoid race condition when Checking IsWaterMarkMsgMarkSuccess it's access array that push by Push function
 			if mb.WaterMark() < mb.CurrentBuffer() {
 				if mb.IsWaterMarkMsgMarkSuccess() {
@@ -59,8 +57,10 @@ func (mb *memoryBuffer) waterMarkUpdater(ctx context.Context) {
 					mb.IncrementWaterMark()
 					// update metric
 					metric.IncrementCurrentWatermark()
+					continue
 				}
 			}
+			time.Sleep(mb.waterMarkUpdateBlockingInterval)
 		}
 	}
 }

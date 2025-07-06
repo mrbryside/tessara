@@ -117,6 +117,7 @@ func (c *committer) pushErrorToGiveUpErrorChannel(ctx context.Context) {
 
 }
 
+// isCommitExceedGiveUpTime checks if the commit exceed give up time
 func isCommitExceedGiveUpTime(lastestCommitedAt time.Time, commitGiveUpTime time.Duration) bool {
 	return time.Now().After(lastestCommitedAt.Add(commitGiveUpTime))
 }
